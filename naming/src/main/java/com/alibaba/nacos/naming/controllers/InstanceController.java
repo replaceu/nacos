@@ -81,13 +81,10 @@ import static com.alibaba.nacos.naming.misc.UtilsAndCommons.UPDATE_INSTANCE_META
 @RestController
 @RequestMapping(UtilsAndCommons.NACOS_NAMING_CONTEXT + "/instance")
 public class InstanceController {
-
 	@Autowired
 	private SwitchDomain switchDomain;
-
 	@Autowired
 	private PushService pushService;
-
 	@Autowired
 	private ServiceManager serviceManager;
 
@@ -154,17 +151,20 @@ public class InstanceController {
 	@DeleteMapping
 	@Secured(parser = NamingResourceParser.class, action = ActionTypes.WRITE)
 	public String deregister(HttpServletRequest request) throws Exception {
+		//根据请求封装Instance
 		Instance instance = getIpAddress(request);
+		//获取命名空间，默认为public
 		String namespaceId = WebUtils.optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
+		//获取服务名称
 		String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
 		NamingUtils.checkServiceNameFormat(serviceName);
-
+		//根据命名空间和服务名称从缓存中获取Service
 		Service service = serviceManager.getService(namespaceId, serviceName);
 		if (service == null) {
 			Loggers.SRV_LOG.warn("remove instance from non-exist service: {}", serviceName);
 			return "ok";
 		}
-
+		//服务管理器删除服务
 		serviceManager.removeInstance(namespaceId, serviceName, instance.isEphemeral(), instance);
 		return "ok";
 	}
@@ -186,7 +186,6 @@ public class InstanceController {
 		final Instance instance = parseInstance(request);
 
 		String agent = WebUtils.getUserAgent(request);
-
 		ClientInfo clientInfo = new ClientInfo(agent);
 
 		if (clientInfo.type == ClientInfo.ClientType.JAVA && clientInfo.version.compareTo(VersionUtil.parseVersion("1.0.0")) >= 0) {
@@ -210,23 +209,15 @@ public class InstanceController {
 	@Secured(parser = NamingResourceParser.class, action = ActionTypes.WRITE)
 	public ObjectNode batchUpdateInstanceMatadata(HttpServletRequest request) throws Exception {
 		final String namespaceId = WebUtils.optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
-
 		String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
-
 		String consistencyType = WebUtils.optional(request, "consistencyType", StringUtils.EMPTY);
-
 		String instances = WebUtils.optional(request, "instances", StringUtils.EMPTY);
-
 		List<Instance> targetInstances = parseBatchInstances(instances);
-
 		String metadata = WebUtils.required(request, "metadata");
 		Map<String, String> targetMetadata = UtilsAndCommons.parseMetadata(metadata);
-
 		List<Instance> operatedInstances = batchOperateMetadata(namespaceId, buildOperationInfo(serviceName, consistencyType, targetInstances), targetMetadata, UPDATE_INSTANCE_METADATA_ACTION_UPDATE);
-
 		ObjectNode result = JacksonUtils.createEmptyJsonNode();
 		ArrayNode ipArray = JacksonUtils.createEmptyArrayNode();
-
 		for (Instance ip : operatedInstances) {
 			ipArray.add(ip.getDatumKey() + ":" + (ip.isEphemeral() ? EPHEMERAL : PERSIST));
 		}
@@ -248,15 +239,10 @@ public class InstanceController {
 	@Secured(parser = NamingResourceParser.class, action = ActionTypes.WRITE)
 	public ObjectNode batchDeleteInstanceMatadata(HttpServletRequest request) throws Exception {
 		final String namespaceId = WebUtils.optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
-
 		String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
-
 		String consistencyType = WebUtils.optional(request, "consistencyType", StringUtils.EMPTY);
-
 		String instances = WebUtils.optional(request, "instances", StringUtils.EMPTY);
-
 		List<Instance> targetInstances = parseBatchInstances(instances);
-
 		String metadata = WebUtils.required(request, "metadata");
 		Map<String, String> targetMetadata = UtilsAndCommons.parseMetadata(metadata);
 
@@ -268,7 +254,6 @@ public class InstanceController {
 		for (Instance ip : operatedInstances) {
 			ipArray.add(ip.getDatumKey() + ":" + (ip.isEphemeral() ? EPHEMERAL : PERSIST));
 		}
-
 		result.replace("updated", ipArray);
 		return result;
 	}
@@ -370,16 +355,13 @@ public class InstanceController {
 		String namespaceId = WebUtils.optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
 		String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
 		NamingUtils.checkServiceNameFormat(serviceName);
-
 		String agent = WebUtils.getUserAgent(request);
 		String clusters = WebUtils.optional(request, "clusters", StringUtils.EMPTY);
 		String clientIP = WebUtils.optional(request, "clientIP", StringUtils.EMPTY);
 		int udpPort = Integer.parseInt(WebUtils.optional(request, "udpPort", "0"));
 		String env = WebUtils.optional(request, "env", StringUtils.EMPTY);
 		boolean isCheck = Boolean.parseBoolean(WebUtils.optional(request, "isCheck", "false"));
-
 		String app = WebUtils.optional(request, "app", StringUtils.EMPTY);
-
 		String tenant = WebUtils.optional(request, "tid", StringUtils.EMPTY);
 
 		boolean healthyOnly = Boolean.parseBoolean(WebUtils.optional(request, "healthyOnly", "false"));
@@ -570,7 +552,6 @@ public class InstanceController {
 	}
 
 	private Instance getIpAddress(HttpServletRequest request) {
-
 		String enabledString = WebUtils.optional(request, "enabled", StringUtils.EMPTY);
 		boolean enabled;
 		if (StringUtils.isBlank(enabledString)) {
@@ -578,15 +559,12 @@ public class InstanceController {
 		} else {
 			enabled = BooleanUtils.toBoolean(enabledString);
 		}
-
 		String weight = WebUtils.optional(request, "weight", "1");
 		boolean healthy = BooleanUtils.toBoolean(WebUtils.optional(request, "healthy", "true"));
-
 		Instance instance = getBasicIpAddress(request);
 		instance.setWeight(Double.parseDouble(weight));
 		instance.setHealthy(healthy);
 		instance.setEnabled(enabled);
-
 		return instance;
 	}
 

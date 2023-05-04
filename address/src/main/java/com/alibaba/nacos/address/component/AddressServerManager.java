@@ -30,14 +30,10 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class AddressServerManager {
-    
     public String getRawProductName(String name) {
-        
         if (StringUtils.isBlank(name) || AddressServerConstants.DEFAULT_PRODUCT.equals(name)) {
-            
             return AddressServerConstants.DEFAULT_PRODUCT;
         }
-        
         return name;
     }
     
@@ -49,16 +45,13 @@ public class AddressServerManager {
      * @return default cluster name
      */
     public String getDefaultClusterNameIfEmpty(String name) {
-        
         if (StringUtils.isEmpty(name) || AddressServerConstants.DEFAULT_GET_CLUSTER.equals(name)) {
             return AddressServerConstants.DEFAULT_GET_CLUSTER;
         }
-        
         return name;
     }
     
     public String getRawClusterName(String name) {
-        
         return getDefaultClusterNameIfEmpty(name);
     }
     
@@ -69,12 +62,9 @@ public class AddressServerManager {
      * @return array of ip
      */
     public String[] splitIps(String ips) {
-        
         if (StringUtils.isBlank(ips)) {
-            
             return new String[0];
         }
-        
         return ips.split(AddressServerConstants.MULTI_IPS_SEPARATOR);
     }
 }

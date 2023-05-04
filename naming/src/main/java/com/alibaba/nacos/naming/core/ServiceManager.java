@@ -629,22 +629,23 @@ public class ServiceManager implements RecordListener<Service> {
 	 * @throws NacosException nacos exception
 	 */
 	public void removeInstance(String namespaceId, String serviceName, boolean ephemeral, Instance... ips) throws NacosException {
+		//根据命名空间和服务名称获取Service
 		Service service = getService(namespaceId, serviceName);
-
+		//对service进行加锁，删除实例
 		synchronized (service) {
 			removeInstance(namespaceId, serviceName, ephemeral, service, ips);
 		}
 	}
 
 	private void removeInstance(String namespaceId, String serviceName, boolean ephemeral, Service service, Instance... ips) throws NacosException {
-
+		//创建key，根据实例是否是临时的进行创建
 		String key = KeyBuilder.buildInstanceListKey(namespaceId, serviceName, ephemeral);
-
+		//返回最新的实例列表
 		List<Instance> instanceList = substractIpAddresses(service, ephemeral, ips);
 
 		Instances instances = new Instances();
 		instances.setInstanceList(instanceList);
-
+		//将最新的实例列表保存起来
 		consistencyService.put(key, instances);
 	}
 

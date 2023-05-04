@@ -31,13 +31,8 @@ import java.util.concurrent.TimeUnit;
  * @date 2020/7/13 1:54 PM
  */
 public class CmdbExecutor {
-    
-    private static final ScheduledExecutorService GLOBAL_EXECUTOR = ExecutorFactory.Managed
-            .newScheduledExecutorService(ClassUtils.getCanonicalName(CmdbApp.class),
-                    Runtime.getRuntime().availableProcessors(),
-                    new NameThreadFactory("com.alibaba.nacos.cmdb.global.executor"));
-    
+    private static final ScheduledExecutorService GLOBAL_EXECUTOR = ExecutorFactory.Managed.newScheduledExecutorService(ClassUtils.getCanonicalName(CmdbApp.class), Runtime.getRuntime().availableProcessors(), new NameThreadFactory("com.alibaba.nacos.cmdb.global.executor"));
     public static void scheduleCmdbTask(Runnable runnable, long delay, TimeUnit unit) {
-        GLOBAL_EXECUTOR.schedule(runnable, delay, unit);
-    }
+		GLOBAL_EXECUTOR.schedule(runnable, delay, unit);
+	}
 }

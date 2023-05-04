@@ -44,12 +44,9 @@ public class AddressServerGeneratorManager {
      * @return product
      */
     public String generateProductName(String name) {
-        
         if (StringUtils.isBlank(name) || AddressServerConstants.DEFAULT_PRODUCT.equals(name)) {
-            
             return AddressServerConstants.ALIWARE_NACOS_DEFAULT_PRODUCT_NAME;
         }
-        
         return String.format(AddressServerConstants.ALIWARE_NACOS_PRODUCT_DOM_TEMPLATE, name);
     }
     
@@ -117,11 +114,9 @@ public class AddressServerGeneratorManager {
      * @return the nacos service name
      */
     public String generateNacosServiceName(String rawServiceName) {
-        
         if (rawServiceName.indexOf(Constants.DEFAULT_GROUP) != -1) {
             return rawServiceName;
         }
-        
         return Constants.DEFAULT_GROUP + AddressServerConstants.GROUP_SERVICE_NAME_SEP + rawServiceName;
     }
 }
