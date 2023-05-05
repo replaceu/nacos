@@ -212,14 +212,20 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 	}
 
 	private boolean processData(byte[] data) throws Exception {
+		//如果data的数据长度为0
 		if (data.length > 0) {
+			//对拉取的数据进行反序列化
 			Map<String, Datum<Instances>> datumMap = serializer.deserializeMap(data, Instances.class);
+			//对拉取回来的数据进行反序列化
 			for (Map.Entry<String, Datum<Instances>> entry : datumMap.entrySet()) {
+				//添加到内存中
 				dataStore.put(entry.getKey(), entry.getValue());
+				//如果监听器没有包含该服务
 				if (!listeners.containsKey(entry.getKey())) {
 					// pretty sure the service not exist:
 					if (switchDomain.isDefaultInstanceEphemeral()) {
 						// create empty service
+						//创建新的service对象
 						Loggers.DISTRO.info("creating service {}", entry.getKey());
 						Service service = new Service();
 						String serviceName = KeyBuilder.getServiceName(entry.getKey());
@@ -237,15 +243,13 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 					}
 				}
 			}
-
+			//遍历所有的数据，并通知监听器
 			for (Map.Entry<String, Datum<Instances>> entry : datumMap.entrySet()) {
-
 				if (!listeners.containsKey(entry.getKey())) {
 					// Should not happen:
 					Loggers.DISTRO.warn("listener of {} not found.", entry.getKey());
 					continue;
 				}
-
 				try {
 					for (RecordListener listener : listeners.get(entry.getKey())) {
 						listener.onChange(entry.getKey(), entry.getValue().value);

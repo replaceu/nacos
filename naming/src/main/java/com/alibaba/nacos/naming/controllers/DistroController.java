@@ -70,23 +70,23 @@ public class DistroController {
 	 */
 	@PutMapping("/datum")
 	public ResponseEntity onSyncDatum(@RequestBody Map<String, Datum<Instances>> dataMap) throws Exception {
-        //如果同步过来的数据为空，抛出异常
-	    if (dataMap.isEmpty()) {
+		//如果同步过来的数据为空，抛出异常
+		if (dataMap.isEmpty()) {
 			Loggers.DISTRO.error("[onSync] receive empty entity!");
 			throw new NacosException(NacosException.INVALID_PARAM, "receive empty entity!");
 		}
-        //遍历同步的临时实例数据
+		//遍历同步的临时实例数据
 		for (Map.Entry<String, Datum<Instances>> entry : dataMap.entrySet()) {
-            //如果是临时数据
+			//如果是临时数据
 			if (KeyBuilder.matchEphemeralInstanceListKey(entry.getKey())) {
 				String namespaceId = KeyBuilder.getNamespace(entry.getKey());
 				String serviceName = KeyBuilder.getServiceName(entry.getKey());
-                //如果没有service，则创建新的服务
+				//如果没有service，则创建新的服务
 				if (!serviceManager.containService(namespaceId, serviceName) && switchDomain.isDefaultInstanceEphemeral()) {
 					serviceManager.createEmptyService(namespaceId, serviceName, true);
 				}
 				DistroHttpData distroHttpData = new DistroHttpData(createDistroKey(entry.getKey()), entry.getValue());
-                //将接收的数据进行处理
+				//将接收的数据进行处理
 				distroProtocol.onReceive(distroHttpData);
 			}
 		}
@@ -135,6 +135,7 @@ public class DistroController {
 	 */
 	@GetMapping("/datums")
 	public ResponseEntity getAllDatums() {
+		//获取临时实例数据
 		DistroData distroData = distroProtocol.onSnapshot(KeyBuilder.INSTANCE_LIST_KEY_PREFIX);
 		return ResponseEntity.ok(distroData.getContent());
 	}

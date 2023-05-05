@@ -209,6 +209,7 @@ public class DistroProtocol {
 	 * @return all datum snapshot
 	 */
 	public DistroData onSnapshot(String type) {
+		//根据类型获取数据存储器
 		DistroDataStorage distroDataStorage = distroComponentHolder.findDataStorage(type);
 		if (null == distroDataStorage) {
 			Loggers.DISTRO.warn("[DISTRO] Can't find data storage for received key {}", type);

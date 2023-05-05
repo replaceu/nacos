@@ -61,7 +61,9 @@ public class DistroDataStorageImpl implements DistroDataStorage {
     
     @Override
     public DistroData getDatumSnapshot() {
+        //从内存中获取所有的缓存数据
         Map<String, Datum> result = dataStore.getDataMap();
+        //进行序列化
         byte[] dataContent = ApplicationUtils.getBean(Serializer.class).serialize(result);
         DistroKey distroKey = new DistroKey("snapshot", KeyBuilder.INSTANCE_LIST_KEY_PREFIX);
         return new DistroData(distroKey, dataContent);
