@@ -30,29 +30,28 @@ import com.alibaba.nacos.core.distributed.distro.task.execute.DistroSyncChangeTa
  * @author xiweng.yy
  */
 public class DistroDelayTaskProcessor implements NacosTaskProcessor {
-    
-    private final DistroTaskEngineHolder distroTaskEngineHolder;
-    
-    private final DistroComponentHolder distroComponentHolder;
-    
-    public DistroDelayTaskProcessor(DistroTaskEngineHolder distroTaskEngineHolder,
-            DistroComponentHolder distroComponentHolder) {
-        this.distroTaskEngineHolder = distroTaskEngineHolder;
-        this.distroComponentHolder = distroComponentHolder;
-    }
-    
-    @Override
-    public boolean process(NacosTask task) {
-        if (!(task instanceof DistroDelayTask)) {
-            return true;
-        }
-        DistroDelayTask distroDelayTask = (DistroDelayTask) task;
-        DistroKey distroKey = distroDelayTask.getDistroKey();
-        if (DataOperation.CHANGE.equals(distroDelayTask.getAction())) {
-            DistroSyncChangeTask syncChangeTask = new DistroSyncChangeTask(distroKey, distroComponentHolder);
-            distroTaskEngineHolder.getExecuteWorkersManager().addTask(distroKey, syncChangeTask);
-            return true;
-        }
-        return false;
-    }
+
+	private final DistroTaskEngineHolder distroTaskEngineHolder;
+
+	private final DistroComponentHolder distroComponentHolder;
+
+	public DistroDelayTaskProcessor(DistroTaskEngineHolder distroTaskEngineHolder, DistroComponentHolder distroComponentHolder) {
+		this.distroTaskEngineHolder = distroTaskEngineHolder;
+		this.distroComponentHolder = distroComponentHolder;
+	}
+
+	@Override
+	public boolean process(NacosTask task) {
+		//如果不是延迟任务，直接返回true
+		if (!(task instanceof DistroDelayTask)) { return true; }
+		DistroDelayTask distroDelayTask = (DistroDelayTask) task;
+		DistroKey distroKey = distroDelayTask.getDistroKey();
+		//如果是数据改变行为，则创建Distro数据改变同步任务，并且将该任务添加到普通任务执行器引擎中。
+		if (DataOperation.CHANGE.equals(distroDelayTask.getAction())) {
+			DistroSyncChangeTask syncChangeTask = new DistroSyncChangeTask(distroKey, distroComponentHolder);
+			distroTaskEngineHolder.getExecuteWorkersManager().addTask(distroKey, syncChangeTask);
+			return true;
+		}
+		return false;
+	}
 }

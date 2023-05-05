@@ -284,6 +284,10 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
 		return peers.get(server);
 	}
 
+	/**
+	 * 返回当前节点数量的一半加一
+	 * @return
+	 */
 	public int majorityCount() {
 		return peers.size() / 2 + 1;
 	}
@@ -292,9 +296,7 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
 	 * Reset set.
 	 */
 	public void reset() {
-
 		leader = null;
-
 		for (RaftPeer peer : peers.values()) {
 			peer.voteFor = null;
 		}
@@ -329,9 +331,7 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
 
 	protected void changePeers(Collection<Member> members) {
 		Map<String, RaftPeer> tmpPeers = new HashMap<>(members.size());
-
 		for (Member member : members) {
-
 			final String address = member.getAddress();
 			if (peers.containsKey(address)) {
 				tmpPeers.put(address, peers.get(address));

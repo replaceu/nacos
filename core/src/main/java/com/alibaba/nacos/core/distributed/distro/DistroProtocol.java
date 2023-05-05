@@ -42,168 +42,178 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DistroProtocol {
-    
-    private final ServerMemberManager memberManager;
-    
-    private final DistroComponentHolder distroComponentHolder;
-    
-    private final DistroTaskEngineHolder distroTaskEngineHolder;
-    
-    private final DistroConfig distroConfig;
-    
-    private volatile boolean isInitialized = false;
-    
-    public DistroProtocol(ServerMemberManager memberManager, DistroComponentHolder distroComponentHolder,
-            DistroTaskEngineHolder distroTaskEngineHolder, DistroConfig distroConfig) {
-        this.memberManager = memberManager;
-        this.distroComponentHolder = distroComponentHolder;
-        this.distroTaskEngineHolder = distroTaskEngineHolder;
-        this.distroConfig = distroConfig;
-        startDistroTask();
-    }
-    
-    private void startDistroTask() {
-        if (EnvUtil.getStandaloneMode()) {
-            isInitialized = true;
-            return;
-        }
-        startVerifyTask();
-        startLoadTask();
-    }
-    
-    private void startLoadTask() {
-        DistroCallback loadCallback = new DistroCallback() {
-            @Override
-            public void onSuccess() {
-                isInitialized = true;
-            }
-            
-            @Override
-            public void onFailed(Throwable throwable) {
-                isInitialized = false;
-            }
-        };
-        GlobalExecutor.submitLoadDataTask(
-                new DistroLoadDataTask(memberManager, distroComponentHolder, distroConfig, loadCallback));
-    }
-    
-    private void startVerifyTask() {
-        GlobalExecutor.schedulePartitionDataTimedSync(new DistroVerifyTask(memberManager, distroComponentHolder),
-                distroConfig.getVerifyIntervalMillis());
-    }
-    
-    public boolean isInitialized() {
-        return isInitialized;
-    }
-    
-    /**
-     * Start to sync by configured delay.
-     *
-     * @param distroKey distro key of sync data
-     * @param action    the action of data operation
-     */
-    public void sync(DistroKey distroKey, DataOperation action) {
-        sync(distroKey, action, distroConfig.getSyncDelayMillis());
-    }
-    
-    /**
-     * Start to sync data to all remote server.
-     *
-     * @param distroKey distro key of sync data
-     * @param action    the action of data operation
-     */
-    public void sync(DistroKey distroKey, DataOperation action, long delay) {
-        for (Member each : memberManager.allMembersWithoutSelf()) {
-            DistroKey distroKeyWithTarget = new DistroKey(distroKey.getResourceKey(), distroKey.getResourceType(),
-                    each.getAddress());
-            DistroDelayTask distroDelayTask = new DistroDelayTask(distroKeyWithTarget, action, delay);
-            distroTaskEngineHolder.getDelayTaskExecuteEngine().addTask(distroKeyWithTarget, distroDelayTask);
-            if (Loggers.DISTRO.isDebugEnabled()) {
-                Loggers.DISTRO.debug("[DISTRO-SCHEDULE] {} to {}", distroKey, each.getAddress());
-            }
-        }
-    }
-    
-    /**
-     * Query data from specified server.
-     *
-     * @param distroKey data key
-     * @return data
-     */
-    public DistroData queryFromRemote(DistroKey distroKey) {
-        if (null == distroKey.getTargetServer()) {
-            Loggers.DISTRO.warn("[DISTRO] Can't query data from empty server");
-            return null;
-        }
-        String resourceType = distroKey.getResourceType();
-        DistroTransportAgent transportAgent = distroComponentHolder.findTransportAgent(resourceType);
-        if (null == transportAgent) {
-            Loggers.DISTRO.warn("[DISTRO] Can't find transport agent for key {}", resourceType);
-            return null;
-        }
-        return transportAgent.getData(distroKey, distroKey.getTargetServer());
-    }
-    
-    /**
-     * Receive synced distro data, find processor to process.
-     *
-     * @param distroData Received data
-     * @return true if handle receive data successfully, otherwise false
-     */
-    public boolean onReceive(DistroData distroData) {
-        String resourceType = distroData.getDistroKey().getResourceType();
-        DistroDataProcessor dataProcessor = distroComponentHolder.findDataProcessor(resourceType);
-        if (null == dataProcessor) {
-            Loggers.DISTRO.warn("[DISTRO] Can't find data process for received data {}", resourceType);
-            return false;
-        }
-        return dataProcessor.processData(distroData);
-    }
-    
-    /**
-     * Receive verify data, find processor to process.
-     *
-     * @param distroData verify data
-     * @return true if verify data successfully, otherwise false
-     */
-    public boolean onVerify(DistroData distroData) {
-        String resourceType = distroData.getDistroKey().getResourceType();
-        DistroDataProcessor dataProcessor = distroComponentHolder.findDataProcessor(resourceType);
-        if (null == dataProcessor) {
-            Loggers.DISTRO.warn("[DISTRO] Can't find verify data process for received data {}", resourceType);
-            return false;
-        }
-        return dataProcessor.processVerifyData(distroData);
-    }
-    
-    /**
-     * Query data of input distro key.
-     *
-     * @param distroKey key of data
-     * @return data
-     */
-    public DistroData onQuery(DistroKey distroKey) {
-        String resourceType = distroKey.getResourceType();
-        DistroDataStorage distroDataStorage = distroComponentHolder.findDataStorage(resourceType);
-        if (null == distroDataStorage) {
-            Loggers.DISTRO.warn("[DISTRO] Can't find data storage for received key {}", resourceType);
-            return new DistroData(distroKey, new byte[0]);
-        }
-        return distroDataStorage.getDistroData(distroKey);
-    }
-    
-    /**
-     * Query all datum snapshot.
-     *
-     * @param type datum type
-     * @return all datum snapshot
-     */
-    public DistroData onSnapshot(String type) {
-        DistroDataStorage distroDataStorage = distroComponentHolder.findDataStorage(type);
-        if (null == distroDataStorage) {
-            Loggers.DISTRO.warn("[DISTRO] Can't find data storage for received key {}", type);
-            return new DistroData(new DistroKey("snapshot", type), new byte[0]);
-        }
-        return distroDataStorage.getDatumSnapshot();
-    }
+
+	private final ServerMemberManager memberManager;
+
+	private final DistroComponentHolder distroComponentHolder;
+
+	private final DistroTaskEngineHolder distroTaskEngineHolder;
+
+	private final DistroConfig distroConfig;
+
+	private volatile boolean isInitialized = false;
+
+	/**
+	 * 如果nacos集群中有新的节点加入，那么新节点就会从其他节点进行全量拉取数据。
+	 * 当DistroProtocol初始化时，调用startDistroTask方法进行全量拉取数据
+	 * @param memberManager
+	 * @param distroComponentHolder
+	 * @param distroTaskEngineHolder
+	 * @param distroConfig
+	 */
+	public DistroProtocol(ServerMemberManager memberManager, DistroComponentHolder distroComponentHolder, DistroTaskEngineHolder distroTaskEngineHolder, DistroConfig distroConfig) {
+		this.memberManager = memberManager;
+		this.distroComponentHolder = distroComponentHolder;
+		this.distroTaskEngineHolder = distroTaskEngineHolder;
+		this.distroConfig = distroConfig;
+		startDistroTask();
+	}
+
+	private void startDistroTask() {
+		if (EnvUtil.getStandaloneMode()) {
+			isInitialized = true;
+			return;
+		}
+		startVerifyTask();
+		//开始全量拉取数据
+		startLoadTask();
+	}
+
+	private void startLoadTask() {
+		DistroCallback loadCallback = new DistroCallback() {
+			@Override
+			public void onSuccess() {
+				isInitialized = true;
+			}
+			@Override
+			public void onFailed(Throwable throwable) {
+				isInitialized = false;
+			}
+		};
+		//提交全量拉取数据的任务
+		GlobalExecutor.submitLoadDataTask(new DistroLoadDataTask(memberManager, distroComponentHolder, distroConfig, loadCallback));
+	}
+
+	private void startVerifyTask() {
+		GlobalExecutor.schedulePartitionDataTimedSync(new DistroVerifyTask(memberManager, distroComponentHolder), distroConfig.getVerifyIntervalMillis());
+	}
+
+	public boolean isInitialized() {
+		return isInitialized;
+	}
+
+	/**
+	 * Start to sync by configured delay.
+	 *
+	 * @param distroKey distro key of sync data
+	 * @param action    the action of data operation
+	 */
+	public void sync(DistroKey distroKey, DataOperation action) {
+		sync(distroKey, action, distroConfig.getSyncDelayMillis());
+	}
+
+	/**
+	 * Start to sync data to all remote server.
+	 *
+	 * @param distroKey distro key of sync data
+	 * @param action    the action of data operation
+	 */
+	public void sync(DistroKey distroKey, DataOperation action, long delay) {
+        //遍历除了自身的所有集群节点
+		for (Member each : memberManager.allMembersWithoutSelf()) {
+			DistroKey distroKeyWithTarget = new DistroKey(distroKey.getResourceKey(), distroKey.getResourceType(), each.getAddress());
+            //封装为 Distro延迟任务
+			DistroDelayTask distroDelayTask = new DistroDelayTask(distroKeyWithTarget, action, delay);
+            //获取延迟任务执行引擎，并将 Distro延迟任务添加到延迟任务执行引擎中
+			distroTaskEngineHolder.getDelayTaskExecuteEngine().addTask(distroKeyWithTarget, distroDelayTask);
+			if (Loggers.DISTRO.isDebugEnabled()) {
+				Loggers.DISTRO.debug("[DISTRO-SCHEDULE] {} to {}", distroKey, each.getAddress());
+			}
+		}
+	}
+
+	/**
+	 * Query data from specified server.
+	 *
+	 * @param distroKey data key
+	 * @return data
+	 */
+	public DistroData queryFromRemote(DistroKey distroKey) {
+		if (null == distroKey.getTargetServer()) {
+			Loggers.DISTRO.warn("[DISTRO] Can't query data from empty server");
+			return null;
+		}
+		String resourceType = distroKey.getResourceType();
+		DistroTransportAgent transportAgent = distroComponentHolder.findTransportAgent(resourceType);
+		if (null == transportAgent) {
+			Loggers.DISTRO.warn("[DISTRO] Can't find transport agent for key {}", resourceType);
+			return null;
+		}
+		return transportAgent.getData(distroKey, distroKey.getTargetServer());
+	}
+
+	/**
+	 * Receive synced distro data, find processor to process.
+	 *
+	 * @param distroData Received data
+	 * @return true if handle receive data successfully, otherwise false
+	 */
+	public boolean onReceive(DistroData distroData) {
+		String resourceType = distroData.getDistroKey().getResourceType();
+		//获取处理器
+		DistroDataProcessor dataProcessor = distroComponentHolder.findDataProcessor(resourceType);
+		if (null == dataProcessor) {
+			Loggers.DISTRO.warn("[DISTRO] Can't find data process for received data {}", resourceType);
+			return false;
+		}
+		//处理同步的实例数据
+		return dataProcessor.processData(distroData);
+	}
+
+	/**
+	 * Receive verify data, find processor to process.
+	 *
+	 * @param distroData verify data
+	 * @return true if verify data successfully, otherwise false
+	 */
+	public boolean onVerify(DistroData distroData) {
+		String resourceType = distroData.getDistroKey().getResourceType();
+		DistroDataProcessor dataProcessor = distroComponentHolder.findDataProcessor(resourceType);
+		if (null == dataProcessor) {
+			Loggers.DISTRO.warn("[DISTRO] Can't find verify data process for received data {}", resourceType);
+			return false;
+		}
+		return dataProcessor.processVerifyData(distroData);
+	}
+
+	/**
+	 * Query data of input distro key.
+	 *
+	 * @param distroKey key of data
+	 * @return data
+	 */
+	public DistroData onQuery(DistroKey distroKey) {
+		String resourceType = distroKey.getResourceType();
+		DistroDataStorage distroDataStorage = distroComponentHolder.findDataStorage(resourceType);
+		if (null == distroDataStorage) {
+			Loggers.DISTRO.warn("[DISTRO] Can't find data storage for received key {}", resourceType);
+			return new DistroData(distroKey, new byte[0]);
+		}
+		return distroDataStorage.getDistroData(distroKey);
+	}
+
+	/**
+	 * Query all datum snapshot.
+	 *
+	 * @param type datum type
+	 * @return all datum snapshot
+	 */
+	public DistroData onSnapshot(String type) {
+		DistroDataStorage distroDataStorage = distroComponentHolder.findDataStorage(type);
+		if (null == distroDataStorage) {
+			Loggers.DISTRO.warn("[DISTRO] Can't find data storage for received key {}", type);
+			return new DistroData(new DistroKey("snapshot", type), new byte[0]);
+		}
+		return distroDataStorage.getDatumSnapshot();
+	}
 }

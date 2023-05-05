@@ -158,16 +158,16 @@ public class RaftCore implements Closeable {
 	public void init() throws Exception {
 		Loggers.RAFT.info("initializing Raft sub-system");
 		final long start = System.currentTimeMillis();
-        //从本地文件中获取数据，加载到节点
+		//从本地文件中获取数据，加载到节点
 		raftStore.loadDatums(notifier, datums);
-        //设置节点的Term
+		//设置节点的Term
 		setTerm(NumberUtils.toLong(raftStore.loadMeta().getProperty("term"), 0L));
 		Loggers.RAFT.info("cache loaded, datum count: {}, current term: {}", datums.size(), peers.getTerm());
 		initialized = true;
 		Loggers.RAFT.info("finish to load data from disk, cost: {} ms.", (System.currentTimeMillis() - start));
-        //注册选举定时任务
+		//注册选举定时任务
 		masterTask = GlobalExecutor.registerMasterElection(new MasterElection());
-        //注册心跳任务
+		//注册心跳任务
 		heartbeatTask = GlobalExecutor.registerHeartbeat(new HeartBeat());
 		versionJudgement.registerObserver(isAllNewVersion -> {
 			stopWork = isAllNewVersion;
@@ -443,7 +443,6 @@ public class RaftCore implements Closeable {
 	}
 
 	public class MasterElection implements Runnable {
-
 		@Override
 		public void run() {
 			try {
@@ -502,7 +501,6 @@ public class RaftCore implements Closeable {
 							Loggers.RAFT.info("received approve from peer: {}", JacksonUtils.toJson(peer));
 							//决定leader
 							peers.decideLeader(peer);
-
 						}
 
 						@Override
@@ -529,29 +527,28 @@ public class RaftCore implements Closeable {
 	 * @return self-peer information
 	 */
 	public synchronized RaftPeer receivedVote(RaftPeer remote) {
+		//如果节点停止，就直接抛出异常
 		if (stopWork) { throw new IllegalStateException("old raft protocol already stop work"); }
+		//如果本地集群没有包含远程节点，抛出异常
 		if (!peers.contains(remote)) { throw new IllegalStateException("can not find peer: " + remote.ip); }
-
+		//获取本地节点
 		RaftPeer local = peers.get(NetUtils.localServer());
+		//如果远程节点的term小于等于本地节点的term，则将本地节点投票给本地节点，并返回本地节点
 		if (remote.term.get() <= local.term.get()) {
 			String msg = "received illegitimate vote" + ", voter-term:" + remote.term + ", votee-term:" + local.term;
-
 			Loggers.RAFT.info(msg);
 			if (StringUtils.isEmpty(local.voteFor)) {
 				local.voteFor = local.ip;
 			}
-
 			return local;
 		}
-
+		//重置leader的LeaderDue
 		local.resetLeaderDue();
-
+		//设置本地节点的状态为FOLLOWER，并且本地节点将投票给远程节点，并将本地节点的term设置为远程节点的term
 		local.state = RaftPeer.State.FOLLOWER;
 		local.voteFor = remote.ip;
 		local.term.set(remote.term.get());
-
 		Loggers.RAFT.info("vote {} as leader, term: {}", remote.ip, remote.term);
-
 		return local;
 	}
 

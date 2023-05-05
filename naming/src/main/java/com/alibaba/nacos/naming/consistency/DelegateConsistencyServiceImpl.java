@@ -101,7 +101,15 @@ public class DelegateConsistencyServiceImpl implements ConsistencyService {
         }
         return Optional.ofNullable(errorMsg);
     }
-    
+
+    /**
+     * DelegateConsistencyServiceImpl类的mapConsistencyService方法会根据key来选择不同的一致性同步类，
+     * 当Instance是临时的，即key以com.alibaba.nacos.naming.iplist.ephemeral.开头，那么就选择ephemeralConsistencyService，
+     * 否则选择persistentConsistencyService，ephemeralConsistencyService类是用来同步临时性Instance，
+     * persistentConsistencyService类是用来同步持久化的Instance的
+     * @param key
+     * @return
+     */
     private ConsistencyService mapConsistencyService(String key) {
         return KeyBuilder.matchEphemeralKey(key) ? ephemeralConsistencyService : persistentConsistencyService;
     }

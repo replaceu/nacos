@@ -44,9 +44,11 @@ public class DistroHttpAgent implements DistroTransportAgent {
     
     @Override
     public boolean syncData(DistroData data, String targetServer) {
+        //如果集群不包含该节点，则直接返回ture
         if (!memberManager.hasMember(targetServer)) {
             return true;
         }
+        //获取同步的内容，通过http请求进行同步
         byte[] dataContent = data.getContent();
         return NamingProxy.syncData(dataContent, data.getDistroKey().getTargetServer());
     }

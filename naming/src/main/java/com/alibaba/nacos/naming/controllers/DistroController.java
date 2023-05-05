@@ -51,93 +51,95 @@ import java.util.Map;
 @RestController
 @RequestMapping(UtilsAndCommons.NACOS_NAMING_CONTEXT + "/distro")
 public class DistroController {
-    
-    @Autowired
-    private DistroProtocol distroProtocol;
-    
-    @Autowired
-    private ServiceManager serviceManager;
-    
-    @Autowired
-    private SwitchDomain switchDomain;
-    
-    /**
-     * Synchronize datum.
-     *
-     * @param dataMap data map
-     * @return 'ok' if success
-     * @throws Exception if failed
-     */
-    @PutMapping("/datum")
-    public ResponseEntity onSyncDatum(@RequestBody Map<String, Datum<Instances>> dataMap) throws Exception {
-        
-        if (dataMap.isEmpty()) {
-            Loggers.DISTRO.error("[onSync] receive empty entity!");
-            throw new NacosException(NacosException.INVALID_PARAM, "receive empty entity!");
-        }
-        
-        for (Map.Entry<String, Datum<Instances>> entry : dataMap.entrySet()) {
-            if (KeyBuilder.matchEphemeralInstanceListKey(entry.getKey())) {
-                String namespaceId = KeyBuilder.getNamespace(entry.getKey());
-                String serviceName = KeyBuilder.getServiceName(entry.getKey());
-                if (!serviceManager.containService(namespaceId, serviceName) && switchDomain
-                        .isDefaultInstanceEphemeral()) {
-                    serviceManager.createEmptyService(namespaceId, serviceName, true);
-                }
-                DistroHttpData distroHttpData = new DistroHttpData(createDistroKey(entry.getKey()), entry.getValue());
-                distroProtocol.onReceive(distroHttpData);
-            }
-        }
-        return ResponseEntity.ok("ok");
-    }
-    
-    /**
-     * Checksum.
-     *
-     * @param source  source server
-     * @param dataMap checksum map
-     * @return 'ok'
-     */
-    @PutMapping("/checksum")
-    public ResponseEntity syncChecksum(@RequestParam String source, @RequestBody Map<String, String> dataMap) {
-        DistroHttpData distroHttpData = new DistroHttpData(createDistroKey(source), dataMap);
-        distroProtocol.onVerify(distroHttpData);
-        return ResponseEntity.ok("ok");
-    }
-    
-    /**
-     * Get datum.
-     *
-     * @param body keys of data
-     * @return datum
-     * @throws Exception if failed
-     */
-    @GetMapping("/datum")
-    public ResponseEntity get(@RequestBody String body) throws Exception {
-        
-        JsonNode bodyNode = JacksonUtils.toObj(body);
-        String keys = bodyNode.get("keys").asText();
-        String keySplitter = ",";
-        DistroHttpCombinedKey distroKey = new DistroHttpCombinedKey(KeyBuilder.INSTANCE_LIST_KEY_PREFIX, "");
-        for (String key : keys.split(keySplitter)) {
-            distroKey.getActualResourceTypes().add(key);
-        }
-        DistroData distroData = distroProtocol.onQuery(distroKey);
-        return ResponseEntity.ok(distroData.getContent());
-    }
-    
-    /**
-     * Get all datums.
-     *
-     * @return all datums
-     */
-    @GetMapping("/datums")
-    public ResponseEntity getAllDatums() {
-        DistroData distroData = distroProtocol.onSnapshot(KeyBuilder.INSTANCE_LIST_KEY_PREFIX);
-        return ResponseEntity.ok(distroData.getContent());
-    }
-    
-    private DistroKey createDistroKey(String resourceKey) {
-        return new DistroKey(resourceKey, KeyBuilder.INSTANCE_LIST_KEY_PREFIX);
-    }
+
+	@Autowired
+	private DistroProtocol distroProtocol;
+
+	@Autowired
+	private ServiceManager serviceManager;
+
+	@Autowired
+	private SwitchDomain switchDomain;
+
+	/**
+	 * Synchronize datum.
+	 * 处理同步过来的临时实例数据
+	 * @param dataMap data map
+	 * @return 'ok' if success
+	 * @throws Exception if failed
+	 */
+	@PutMapping("/datum")
+	public ResponseEntity onSyncDatum(@RequestBody Map<String, Datum<Instances>> dataMap) throws Exception {
+        //如果同步过来的数据为空，抛出异常
+	    if (dataMap.isEmpty()) {
+			Loggers.DISTRO.error("[onSync] receive empty entity!");
+			throw new NacosException(NacosException.INVALID_PARAM, "receive empty entity!");
+		}
+        //遍历同步的临时实例数据
+		for (Map.Entry<String, Datum<Instances>> entry : dataMap.entrySet()) {
+            //如果是临时数据
+			if (KeyBuilder.matchEphemeralInstanceListKey(entry.getKey())) {
+				String namespaceId = KeyBuilder.getNamespace(entry.getKey());
+				String serviceName = KeyBuilder.getServiceName(entry.getKey());
+                //如果没有service，则创建新的服务
+				if (!serviceManager.containService(namespaceId, serviceName) && switchDomain.isDefaultInstanceEphemeral()) {
+					serviceManager.createEmptyService(namespaceId, serviceName, true);
+				}
+				DistroHttpData distroHttpData = new DistroHttpData(createDistroKey(entry.getKey()), entry.getValue());
+                //将接收的数据进行处理
+				distroProtocol.onReceive(distroHttpData);
+			}
+		}
+		return ResponseEntity.ok("ok");
+	}
+
+	/**
+	 * Checksum.
+	 *
+	 * @param source  source server
+	 * @param dataMap checksum map
+	 * @return 'ok'
+	 */
+	@PutMapping("/checksum")
+	public ResponseEntity syncChecksum(@RequestParam String source, @RequestBody Map<String, String> dataMap) {
+		DistroHttpData distroHttpData = new DistroHttpData(createDistroKey(source), dataMap);
+		distroProtocol.onVerify(distroHttpData);
+		return ResponseEntity.ok("ok");
+	}
+
+	/**
+	 * Get datum.
+	 *
+	 * @param body keys of data
+	 * @return datum
+	 * @throws Exception if failed
+	 */
+	@GetMapping("/datum")
+	public ResponseEntity get(@RequestBody String body) throws Exception {
+
+		JsonNode bodyNode = JacksonUtils.toObj(body);
+		String keys = bodyNode.get("keys").asText();
+		String keySplitter = ",";
+		DistroHttpCombinedKey distroKey = new DistroHttpCombinedKey(KeyBuilder.INSTANCE_LIST_KEY_PREFIX, "");
+		for (String key : keys.split(keySplitter)) {
+			distroKey.getActualResourceTypes().add(key);
+		}
+		DistroData distroData = distroProtocol.onQuery(distroKey);
+		return ResponseEntity.ok(distroData.getContent());
+	}
+
+	/**
+	 * Get all datums.
+	 *
+	 * @return all datums
+	 */
+	@GetMapping("/datums")
+	public ResponseEntity getAllDatums() {
+		DistroData distroData = distroProtocol.onSnapshot(KeyBuilder.INSTANCE_LIST_KEY_PREFIX);
+		return ResponseEntity.ok(distroData.getContent());
+	}
+
+	private DistroKey createDistroKey(String resourceKey) {
+		return new DistroKey(resourceKey, KeyBuilder.INSTANCE_LIST_KEY_PREFIX);
+	}
 }

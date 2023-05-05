@@ -30,12 +30,13 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DistroTaskEngineHolder {
-    
+    //延迟任务执行引擎
     private final DistroDelayTaskExecuteEngine delayTaskExecuteEngine = new DistroDelayTaskExecuteEngine();
-    
+    //普通任务执行引擎
     private final DistroExecuteTaskExecuteEngine executeWorkersManager = new DistroExecuteTaskExecuteEngine();
     
     public DistroTaskEngineHolder(DistroComponentHolder distroComponentHolder) {
+        //设置默认的延迟任务处理器
         DistroDelayTaskProcessor defaultDelayTaskProcessor = new DistroDelayTaskProcessor(this, distroComponentHolder);
         delayTaskExecuteEngine.setDefaultTaskProcessor(defaultDelayTaskProcessor);
     }
@@ -47,7 +48,7 @@ public class DistroTaskEngineHolder {
     public DistroExecuteTaskExecuteEngine getExecuteWorkersManager() {
         return executeWorkersManager;
     }
-    
+    //延迟任务执行引擎注册处理器
     public void registerNacosTaskProcessor(Object key, NacosTaskProcessor nacosTaskProcessor) {
         this.delayTaskExecuteEngine.addProcessor(key, nacosTaskProcessor);
     }

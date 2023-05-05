@@ -42,15 +42,20 @@ public class DistroSyncChangeTask extends AbstractDistroExecuteTask {
         Loggers.DISTRO.info("[DISTRO-START] {}", toString());
         try {
             String type = getDistroKey().getResourceType();
+            //获取需要同步的数据
             DistroData distroData = distroComponentHolder.findDataStorage(type).getDistroData(getDistroKey());
+            //设置同步数据的类型
             distroData.setType(DataOperation.CHANGE);
+            //进行临时实例数据同步
             boolean result = distroComponentHolder.findTransportAgent(type).syncData(distroData, getDistroKey().getTargetServer());
+            //如果同步失败，则进行重试
             if (!result) {
                 handleFailedTask();
             }
             Loggers.DISTRO.info("[DISTRO-END] {} result: {}", toString(), result);
         } catch (Exception e) {
             Loggers.DISTRO.warn("[DISTRO] Sync data change failed.", e);
+            //如果同步发生异常，则进行重试同步
             handleFailedTask();
         }
     }

@@ -31,17 +31,20 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Deprecated
 public class RaftPeer {
-    
+    //节点IP地址
     public String ip;
-    
+
+    //节点选票信息
     public String voteFor;
-    
+
+    //选举时间
     public AtomicLong term = new AtomicLong(0L);
     
     public volatile long leaderDueMs = RandomUtils.nextLong(0, GlobalExecutor.LEADER_TIMEOUT_MS);
     
     public volatile long heartbeatDueMs = RandomUtils.nextLong(0, GlobalExecutor.HEARTBEAT_INTERVAL_MS);
-    
+
+    //节点角色，默认为follower
     public volatile State state = State.FOLLOWER;
     
     public void resetLeaderDue() {
