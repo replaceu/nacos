@@ -91,22 +91,21 @@ public class NacosNamingService implements NamingService {
 		initLogName(properties);
 
 		this.serverProxy = new NamingProxy(this.namespace, this.endpoint, this.serverList, properties);
+		//初始化BeatReactor时，会创建线程池executorService
 		this.beatReactor = new BeatReactor(this.serverProxy, initClientBeatThreadCount(properties));
 		this.hostReactor = new HostReactor(this.serverProxy, beatReactor, this.cacheDir, isLoadCacheAtStart(properties), isPushEmptyProtect(properties), initPollingThreadCount(properties));
 	}
 
 	private int initClientBeatThreadCount(Properties properties) {
 		if (properties == null) { return UtilAndComs.DEFAULT_CLIENT_BEAT_THREAD_COUNT; }
-
+		//创建不断给服务端发送心跳的线程池的线程数量
 		return ConvertUtils.toInt(properties.getProperty(PropertyKeyConst.NAMING_CLIENT_BEAT_THREAD_COUNT), UtilAndComs.DEFAULT_CLIENT_BEAT_THREAD_COUNT);
 	}
 
 	private int initPollingThreadCount(Properties properties) {
 		if (properties == null) {
-
 			return UtilAndComs.DEFAULT_POLLING_THREAD_COUNT;
 		}
-
 		return ConvertUtils.toInt(properties.getProperty(PropertyKeyConst.NAMING_POLLING_THREAD_COUNT), UtilAndComs.DEFAULT_POLLING_THREAD_COUNT);
 	}
 
@@ -179,8 +178,8 @@ public class NacosNamingService implements NamingService {
 
 	@Override
 	public void registerInstance(String serviceName, String groupName, String ip, int port, String clusterName) throws NacosException {
-
 		Instance instance = new Instance();
+		//设置ip,端口，权重，集群名称
 		instance.setIp(ip);
 		instance.setPort(port);
 		instance.setWeight(1.0);
@@ -196,9 +195,13 @@ public class NacosNamingService implements NamingService {
 
 	@Override
 	public void registerInstance(String serviceName, String groupName, Instance instance) throws NacosException {
+		//检验参数是否合法
 		NamingUtils.checkInstanceIsLegal(instance);
+		//创建groupServiceName
 		String groupedServiceName = NamingUtils.getGroupedName(serviceName, groupName);
+		//如果实例是临时的
 		if (instance.isEphemeral()) {
+			//创建并添加心跳信息
 			BeatInfo beatInfo = beatReactor.buildBeatInfo(groupedServiceName, instance);
 			beatReactor.addBeatInfo(groupedServiceName, beatInfo);
 		}

@@ -116,7 +116,7 @@ public class InstanceController {
 
 	/**
 	 * Register new instance.
-	 *
+	 * 客户端服务注册，将请求发送给nacos服务的/nacos/v1/ns/instance的接口
 	 * @param request http request
 	 * @return 'ok' if success
 	 * @throws Exception any error during register
@@ -415,8 +415,8 @@ public class InstanceController {
 	}
 
 	/**
-	 * Create a beat for instance.
-	 *
+	 * Create a beat for instance
+	 * 服务端处理心跳请求
 	 * @param request http request
 	 * @return detail information of instance
 	 * @throws Exception any error during handle
@@ -428,12 +428,13 @@ public class InstanceController {
 		//解析心跳的请求参数
 		ObjectNode result = JacksonUtils.createEmptyJsonNode();
 		result.put(SwitchEntry.CLIENT_BEAT_INTERVAL, switchDomain.getClientBeatInterval());
-
+		//获取beat参数
 		String beat = WebUtils.optional(request, "beat", StringUtils.EMPTY);
 		RsInfo clientBeat = null;
 		if (StringUtils.isNotBlank(beat)) {
 			clientBeat = JacksonUtils.toObj(beat, RsInfo.class);
 		}
+		//获取集群的名字、ip、端口
 		String clusterName = WebUtils.optional(request, CommonParams.CLUSTER_NAME, UtilsAndCommons.DEFAULT_CLUSTER_NAME);
 		String ip = WebUtils.optional(request, "ip", StringUtils.EMPTY);
 		int port = Integer.parseInt(WebUtils.optional(request, "port", "0"));
@@ -484,6 +485,7 @@ public class InstanceController {
 		}
 		//如果心跳没问题，开始处理心跳结果
 		service.processClientBeat(clientBeat);
+		//返回正常的返回码
 		result.put(CommonParams.CODE, NamingResponseCode.OK);
 		if (instance.containsMetadata(PreservedMetadataKeys.HEART_BEAT_INTERVAL)) {
 			result.put(SwitchEntry.CLIENT_BEAT_INTERVAL, instance.getInstanceHeartBeatInterval());

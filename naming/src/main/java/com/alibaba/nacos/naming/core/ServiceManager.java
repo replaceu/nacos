@@ -458,14 +458,17 @@ public class ServiceManager implements RecordListener<Service> {
 			service.setGroupName(NamingUtils.getGroupName(serviceName));
 			// now validate the service. if failed, exception will be thrown
 			service.setLastModifiedMillis(System.currentTimeMillis());
+			//计算检验和，将实例的所有的ip进行排序拼接并生成md5
 			service.recalculateChecksum();
 			if (cluster != null) {
 				cluster.setService(service);
 				service.getClusterMap().put(cluster.getName(), cluster);
 			}
+			//服务名称、集群名称合法性的校验
 			service.validate();
-			//写入注册表并初始化
+			//写入注册表并初始化，并添加监听器
 			putServiceAndInit(service);
+			//如果非临时数据，则进行nacos集群间同步服务数据
 			if (!local) {
 				addOrReplaceService(service);
 			}
@@ -614,7 +617,7 @@ public class ServiceManager implements RecordListener<Service> {
 			//2.封装实例列表到Instances对象
 			Instances instances = new Instances();
 			instances.setInstanceList(instanceList);
-			//3。完成注册表更新，以及Nacos集群的数据同步
+			//todo:3.完成注册表更新，以及Nacos集群的数据同步
 			consistencyService.put(key, instances);
 		}
 	}
@@ -823,6 +826,7 @@ public class ServiceManager implements RecordListener<Service> {
 		service = getService(service.getNamespaceId(), service.getName());
 		//完成服务的初始化
 		service.init();
+		//添加服务监听器
 		consistencyService.listen(KeyBuilder.buildInstanceListKey(service.getNamespaceId(), service.getName(), true), service);
 		consistencyService.listen(KeyBuilder.buildInstanceListKey(service.getNamespaceId(), service.getName(), false), service);
 		Loggers.SRV_LOG.info("[NEW-SERVICE] {}", service.toJson());

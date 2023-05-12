@@ -99,6 +99,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 
 	@PostConstruct
 	public void init() {
+		//init方法进行启动Notifier线程
 		GlobalExecutor.submitDistroNotifyTask(notifier);
 	}
 
@@ -106,7 +107,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 	public void put(String key, Record value) throws NacosException {
 		//保存instance到内存，并添加服务变更通知到队列中
 		onPut(key, value);
-		//集群间的数据一致性同步
+		//todo:集群间的数据一致性同步
 		distroProtocol.sync(new DistroKey(key, KeyBuilder.INSTANCE_LIST_KEY_PREFIX), DataOperation.CHANGE, globalConfig.getTaskDispatchPeriod() / 2);
 	}
 

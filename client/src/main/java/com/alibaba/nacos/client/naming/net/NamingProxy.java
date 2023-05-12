@@ -213,7 +213,8 @@ public class NamingProxy implements Closeable {
 	}
 
 	/**
-	 * register a instance to service with specified instance properties.
+	 * register a instance to service with specified instance properties
+	 * 客户端服务注册
 	 *
 	 * @param serviceName name of service
 	 * @param groupName   group of service
@@ -223,7 +224,10 @@ public class NamingProxy implements Closeable {
 	public void registerService(String serviceName, String groupName, Instance instance) throws NacosException {
 
 		NAMING_LOGGER.info("[REGISTER-SERVICE] {} registering service {} with instance: {}", namespaceId, serviceName, instance);
-
+		/**
+		 封装http请求参数，包括命名空间、服务名称、组名称、集群名称、ip、端口
+		 权重、服务健康状态、服务是否是临时的、元数据。
+		 **/
 		final Map<String, String> params = new HashMap<String, String>(16);
 		params.put(CommonParams.NAMESPACE_ID, namespaceId);
 		params.put(CommonParams.SERVICE_NAME, serviceName);
@@ -236,7 +240,7 @@ public class NamingProxy implements Closeable {
 		params.put("healthy", String.valueOf(instance.isHealthy()));
 		params.put("ephemeral", String.valueOf(instance.isEphemeral()));
 		params.put("metadata", JacksonUtils.toJson(instance.getMetadata()));
-
+		// post请求：/nacos/v1/ns/instance
 		reqApi(UtilAndComs.nacosUrlInstance, params, HttpMethod.POST);
 
 	}

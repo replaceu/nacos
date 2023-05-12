@@ -42,21 +42,19 @@ public class NamingExample {
     public static void main(String[] args) throws NacosException {
         
         Properties properties = new Properties();
+        //nacos服务端的地址
         properties.setProperty("serverAddr", System.getProperty("serverAddr"));
+        //命名空间
         properties.setProperty("namespace", System.getProperty("namespace"));
-        
+        //使用命名工厂类创建NamingService
         NamingService naming = NamingFactory.createNamingService(properties);
-        
+        //往nacos服务端注册服务：服务名称、ip、端口、集群名称
         naming.registerInstance("nacos.test.3", "11.11.11.11", 8888, "TEST1");
-        
         naming.registerInstance("nacos.test.3", "2.2.2.2", 9999, "DEFAULT");
         
         System.out.println(naming.getAllInstances("nacos.test.3"));
-        
         naming.deregisterInstance("nacos.test.3", "2.2.2.2", 9999, "DEFAULT");
-        
         System.out.println(naming.getAllInstances("nacos.test.3"));
-        
         Executor executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(),
                 new ThreadFactory() {
                     @Override

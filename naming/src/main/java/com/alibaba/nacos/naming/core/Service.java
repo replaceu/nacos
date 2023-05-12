@@ -226,7 +226,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
 
 	/**
 	 * Update instances.
-	 *
+	 * todo:更新所有的实例
 	 * @param instances instances
 	 * @param ephemeral whether is ephemeral instance
 	 */
@@ -242,7 +242,6 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
 					Loggers.SRV_LOG.error("[NACOS-DOM] received malformed ip: null");
 					continue;
 				}
-
 				if (StringUtils.isEmpty(instance.getClusterName())) {
 					instance.setClusterName(UtilsAndCommons.DEFAULT_CLUSTER_NAME);
 				}
@@ -258,19 +257,18 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
 					clusterIPs = new LinkedList<>();
 					ipMap.put(instance.getClusterName(), clusterIPs);
 				}
-
 				clusterIPs.add(instance);
 			} catch (Exception e) {
 				Loggers.SRV_LOG.error("[NACOS-DOM] failed to process ip: " + instance, e);
 			}
 		}
-
 		for (Map.Entry<String, List<Instance>> entry : ipMap.entrySet()) {
 			//make every ip mine
 			List<Instance> entryIPs = entry.getValue();
 			clusterMap.get(entry.getKey()).updateIps(entryIPs, ephemeral);
 		}
 		setLastModifiedMillis(System.currentTimeMillis());
+		//通过推送服务去发布更新服务
 		getPushService().serviceChanged(this);
 		StringBuilder stringBuilder = new StringBuilder();
 

@@ -553,19 +553,16 @@ public class RaftCore implements Closeable {
 	}
 
 	public class HeartBeat implements Runnable {
-
 		@Override
 		public void run() {
 			try {
 				if (stopWork) { return; }
 				if (!peers.isReady()) { return; }
-
 				RaftPeer local = peers.local();
 				local.heartbeatDueMs -= GlobalExecutor.TICK_PERIOD_MS;
 				if (local.heartbeatDueMs > 0) { return; }
 
 				local.resetHeartbeatDue();
-
 				sendBeat();
 			} catch (Exception e) {
 				Loggers.RAFT.warn("[RAFT] error while sending beat {}", e);

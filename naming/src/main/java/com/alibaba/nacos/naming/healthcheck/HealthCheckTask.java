@@ -89,16 +89,12 @@ public class HealthCheckTask implements Runnable {
 			if (!cancelled) {
                 //结束后，再次进行任务调度，一定延迟后执行
 				HealthCheckReactor.scheduleCheck(this);
-
 				// worst == 0 means never checked
 				if (this.getCheckRtWorst() > 0 && switchDomain.isHealthCheckEnabled(cluster.getService().getName()) && distroMapper.responsible(cluster.getService().getName())) {
 					// TLog doesn't support float so we must convert it into long
 					long diff = ((this.getCheckRtLast() - this.getCheckRtLastLast()) * 10000) / this.getCheckRtLastLast();
-
 					this.setCheckRtLastLast(this.getCheckRtLast());
-
 					Cluster cluster = this.getCluster();
-
 					if (Loggers.CHECK_RT.isDebugEnabled()) {
 						Loggers.CHECK_RT.debug("{}:{}@{}->normalized: {}, worst: {}, best: {}, last: {}, diff: {}", cluster.getService().getName(), cluster.getName(), cluster.getHealthChecker().getType(), this.getCheckRtNormalized(), this.getCheckRtWorst(), this.getCheckRtBest(), this.getCheckRtLast(), diff);
 					}

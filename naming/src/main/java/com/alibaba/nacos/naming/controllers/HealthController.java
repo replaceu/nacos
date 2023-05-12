@@ -58,91 +58,84 @@ import java.util.Map;
 @RestController("namingHealthController")
 @RequestMapping(UtilsAndCommons.NACOS_NAMING_CONTEXT + "/health")
 public class HealthController {
-    
-    @Autowired
-    private ServiceManager serviceManager;
-    
-    @Autowired
-    private PushService pushService;
-    
-    /**
-     * Just a health check.
-     *
-     * @return hello message
-     */
-    @RequestMapping("/server")
-    public ObjectNode server() {
-        ObjectNode result = JacksonUtils.createEmptyJsonNode();
-        result.put("msg",
-                "Hello! I am Nacos-Naming and healthy! total services: raft " + serviceManager.getServiceCount()
-                        + ", local port:" + EnvUtil.getPort());
-        return result;
-    }
-    
-    /**
-     * Update health check for instance.
-     *
-     * @param request http request
-     * @return 'ok' if success
-     */
-    @CanDistro
-    @PutMapping(value = {"", "/instance"})
-    @Secured(action = ActionTypes.WRITE)
-    public String update(HttpServletRequest request) {
-        String healthyString = WebUtils.optional(request, "healthy", StringUtils.EMPTY);
-        if (StringUtils.isBlank(healthyString)) {
-            healthyString = WebUtils.optional(request, "valid", StringUtils.EMPTY);
-        }
-        if (StringUtils.isBlank(healthyString)) {
-            throw new IllegalArgumentException("Param 'healthy' is required.");
-        }
-        
-        boolean valid = BooleanUtils.toBoolean(healthyString);
-        
-        String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
-        String namespaceId = WebUtils.optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
-        String clusterName = WebUtils
-                .optional(request, CommonParams.CLUSTER_NAME, UtilsAndCommons.DEFAULT_CLUSTER_NAME);
-        String ip = WebUtils.required(request, "ip");
-        int port = Integer.parseInt(WebUtils.required(request, "port"));
-        
-        Service service = serviceManager.getService(namespaceId, serviceName);
-        // Only health check "none" need update health status with api
-        if (HealthCheckType.NONE.name().equals(service.getClusterMap().get(clusterName).getHealthChecker().getType())) {
-            for (Instance instance : service.allIPs(Lists.newArrayList(clusterName))) {
-                if (instance.getIp().equals(ip) && instance.getPort() == port) {
-                    instance.setHealthy(valid);
-                    Loggers.EVT_LOG.info((valid ? "[IP-ENABLED]" : "[IP-DISABLED]") + " ips: " + instance.getIp() + ":"
-                            + instance.getPort() + "@" + instance.getClusterName() + ", service: " + serviceName
-                            + ", msg: update thought HealthController api");
-                    pushService.serviceChanged(service);
-                    break;
-                }
-            }
-        } else {
-            throw new IllegalArgumentException("health check is still working, service: " + serviceName);
-        }
-        
-        return "ok";
-    }
-    
-    /**
-     * Get all health checkers.
-     *
-     * @return health checkers map
-     */
-    @GetMapping("checkers")
-    public ResponseEntity checkers() {
-        List<Class<? extends AbstractHealthChecker>> classes = HealthCheckType.getLoadedHealthCheckerClasses();
-        Map<String, AbstractHealthChecker> checkerMap = new HashMap<>(8);
-        for (Class<? extends AbstractHealthChecker> clazz : classes) {
-            try {
-                AbstractHealthChecker checker = clazz.newInstance();
-                checkerMap.put(checker.getType(), checker);
-            } catch (InstantiationException | IllegalAccessException e) {
-                Loggers.EVT_LOG.error("checkers error ", e);
-            }
-        }
-        return ResponseEntity.ok(checkerMap);
-    }
+
+	@Autowired
+	private ServiceManager serviceManager;
+
+	@Autowired
+	private PushService pushService;
+
+	/**
+	 * Just a health check.
+	 *
+	 * @return hello message
+	 */
+	@RequestMapping("/server")
+	public ObjectNode server() {
+		ObjectNode result = JacksonUtils.createEmptyJsonNode();
+		result.put("msg", "Hello! I am Nacos-Naming and healthy! total services: raft " + serviceManager.getServiceCount() + ", local port:" + EnvUtil.getPort());
+		return result;
+	}
+
+	/**
+	 * Update health check for instance.
+	 *
+	 * @param request http request
+	 * @return 'ok' if success
+	 */
+	@CanDistro
+	@PutMapping(value = { "", "/instance" })
+	@Secured(action = ActionTypes.WRITE)
+	public String update(HttpServletRequest request) {
+		String healthyString = WebUtils.optional(request, "healthy", StringUtils.EMPTY);
+		if (StringUtils.isBlank(healthyString)) {
+			healthyString = WebUtils.optional(request, "valid", StringUtils.EMPTY);
+		}
+		if (StringUtils.isBlank(healthyString)) { throw new IllegalArgumentException("Param 'healthy' is required."); }
+
+		boolean valid = BooleanUtils.toBoolean(healthyString);
+
+		String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
+		String namespaceId = WebUtils.optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
+		String clusterName = WebUtils.optional(request, CommonParams.CLUSTER_NAME, UtilsAndCommons.DEFAULT_CLUSTER_NAME);
+		String ip = WebUtils.required(request, "ip");
+		int port = Integer.parseInt(WebUtils.required(request, "port"));
+
+		Service service = serviceManager.getService(namespaceId, serviceName);
+		// Only health check "none" need update health status with api
+		if (HealthCheckType.NONE.name().equals(service.getClusterMap().get(clusterName).getHealthChecker().getType())) {
+			for (Instance instance : service.allIPs(Lists.newArrayList(clusterName))) {
+				if (instance.getIp().equals(ip) && instance.getPort() == port) {
+					instance.setHealthy(valid);
+					Loggers.EVT_LOG.info((valid ? "[IP-ENABLED]" : "[IP-DISABLED]") + " ips: " + instance.getIp() + ":" + instance.getPort() + "@" + instance.getClusterName() + ", service: " + serviceName + ", msg: update thought HealthController api");
+					pushService.serviceChanged(service);
+					break;
+				}
+			}
+		} else {
+			throw new IllegalArgumentException("health check is still working, service: " + serviceName);
+		}
+
+		return "ok";
+	}
+
+	/**
+	 * Get all health checkers.
+	 *
+	 * @return health checkers map
+	 */
+	@GetMapping("checkers")
+	public ResponseEntity checkers() {
+		List<Class<? extends AbstractHealthChecker>> classes = HealthCheckType.getLoadedHealthCheckerClasses();
+		Map<String, AbstractHealthChecker> checkerMap = new HashMap<>(8);
+		for (Class<? extends AbstractHealthChecker> clazz : classes) {
+			try {
+				AbstractHealthChecker checker = clazz.newInstance();
+				checkerMap.put(checker.getType(), checker);
+			} catch (InstantiationException | IllegalAccessException e) {
+				Loggers.EVT_LOG.error("checkers error ", e);
+			}
+		}
+		return ResponseEntity.ok(checkerMap);
+	}
 }

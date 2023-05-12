@@ -357,7 +357,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
 		// merge some change events to reduce the push frequency:
         //如果futureMap已经包括服务变更了，直接返回
 		if (futureMap.containsKey(UtilsAndCommons.assembleFullServiceName(service.getNamespaceId(), service.getName()))) { return; }
-		//服务变更发布
+		//todo：服务变更发布，publishEvent方法会触发PushService类的onApplicationEvent方法完成最终的服务变更通知
 		this.applicationContext.publishEvent(new ServiceChangeEvent(this, service));
 	}
 

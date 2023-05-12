@@ -69,29 +69,21 @@ public class HttpHealthCheckProcessor implements HealthCheckProcessor {
         if (CollectionUtils.isEmpty(ips)) {
             return;
         }
-        
         if (!switchDomain.isHealthCheckEnabled()) {
             return;
         }
-        
         Cluster cluster = task.getCluster();
-        
         for (Instance ip : ips) {
             try {
-                
                 if (ip.isMarked()) {
                     if (SRV_LOG.isDebugEnabled()) {
                         SRV_LOG.debug("http check, ip is marked as to skip health check, ip: {}" + ip.getIp());
                     }
                     continue;
                 }
-                
                 if (!ip.markChecking()) {
-                    SRV_LOG.warn("http check started before last one finished, service: {}:{}:{}",
-                            task.getCluster().getService().getName(), task.getCluster().getName(), ip.getIp());
-                    
-                    healthCheckCommon.reEvaluateCheckRT(task.getCheckRtNormalized() * 2, task,
-                            switchDomain.getHttpHealthParams());
+                    SRV_LOG.warn("http check started before last one finished, service: {}:{}:{}",task.getCluster().getService().getName(), task.getCluster().getName(), ip.getIp());
+                    healthCheckCommon.reEvaluateCheckRT(task.getCheckRtNormalized() * 2, task, switchDomain.getHttpHealthParams());
                     continue;
                 }
                 
@@ -103,15 +95,12 @@ public class HttpHealthCheckProcessor implements HealthCheckProcessor {
                 Map<String, String> customHeaders = healthChecker.getCustomHeaders();
                 Header header = Header.newInstance();
                 header.addAll(customHeaders);
-    
-                ASYNC_REST_TEMPLATE.get(target.toString(), header, Query.EMPTY, String.class,
-                        new HttpHealthCheckCallback(ip, task));
+                ASYNC_REST_TEMPLATE.get(target.toString(), header, Query.EMPTY, String.class, new HttpHealthCheckCallback(ip, task));
                 MetricsMonitor.getHttpHealthCheckMonitor().incrementAndGet();
             } catch (Throwable e) {
                 ip.setCheckRt(switchDomain.getHttpHealthParams().getMax());
                 healthCheckCommon.checkFail(ip, task, "http:error:" + e.getMessage());
-                healthCheckCommon.reEvaluateCheckRT(switchDomain.getHttpHealthParams().getMax(), task,
-                        switchDomain.getHttpHealthParams());
+                healthCheckCommon.reEvaluateCheckRT(switchDomain.getHttpHealthParams().getMax(), task, switchDomain.getHttpHealthParams());
             }
         }
     }
