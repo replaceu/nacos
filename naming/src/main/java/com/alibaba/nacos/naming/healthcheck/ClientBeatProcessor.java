@@ -34,62 +34,64 @@ import java.util.concurrent.TimeUnit;
  * @author nkorange
  */
 public class ClientBeatProcessor implements Runnable {
-    
-    public static final long CLIENT_BEAT_TIMEOUT = TimeUnit.SECONDS.toMillis(15);
-    
-    private RsInfo rsInfo;
-    
-    private Service service;
-    
-    @JsonIgnore
-    public PushService getPushService() {
-        return ApplicationUtils.getBean(PushService.class);
-    }
-    
-    public RsInfo getRsInfo() {
-        return rsInfo;
-    }
-    
-    public void setRsInfo(RsInfo rsInfo) {
-        this.rsInfo = rsInfo;
-    }
-    
-    public Service getService() {
-        return service;
-    }
-    
-    public void setService(Service service) {
-        this.service = service;
-    }
-    
-    @Override
-    public void run() {
-        Service service = this.service;
-        if (Loggers.EVT_LOG.isDebugEnabled()) {
-            Loggers.EVT_LOG.debug("[CLIENT-BEAT] processing beat: {}", rsInfo.toString());
-        }
-        
-        String ip = rsInfo.getIp();
-        String clusterName = rsInfo.getCluster();
-        int port = rsInfo.getPort();
-        Cluster cluster = service.getClusterMap().get(clusterName);
-        List<Instance> instances = cluster.allIPs(true);
-        
-        for (Instance instance : instances) {
-            if (instance.getIp().equals(ip) && instance.getPort() == port) {
-                if (Loggers.EVT_LOG.isDebugEnabled()) {
-                    Loggers.EVT_LOG.debug("[CLIENT-BEAT] refresh beat: {}", rsInfo.toString());
-                }
-                instance.setLastBeat(System.currentTimeMillis());
-                if (!instance.isMarked() && !instance.isHealthy()) {
-                    instance.setHealthy(true);
-                    Loggers.EVT_LOG
-                            .info("service: {} {POS} {IP-ENABLED} valid: {}:{}@{}, region: {}, msg: client beat ok",
-                                    cluster.getService().getName(), ip, port, cluster.getName(),
-                                    UtilsAndCommons.LOCALHOST_SITE);
-                    getPushService().serviceChanged(service);
-                }
-            }
-        }
-    }
+
+	public static final long CLIENT_BEAT_TIMEOUT = TimeUnit.SECONDS.toMillis(15);
+
+	private RsInfo rsInfo;
+
+	private Service service;
+
+	@JsonIgnore
+	public PushService getPushService() {
+		return ApplicationUtils.getBean(PushService.class);
+	}
+
+	public RsInfo getRsInfo() {
+		return rsInfo;
+	}
+
+	public void setRsInfo(RsInfo rsInfo) {
+		this.rsInfo = rsInfo;
+	}
+
+	public Service getService() {
+		return service;
+	}
+
+	public void setService(Service service) {
+		this.service = service;
+	}
+
+	@Override
+	public void run() {
+		Service service = this.service;
+		if (Loggers.EVT_LOG.isDebugEnabled()) {
+			Loggers.EVT_LOG.debug("[CLIENT-BEAT] processing beat: {}", rsInfo.toString());
+		}
+        //ip 集群名称、端口
+		String ip = rsInfo.getIp();
+		String clusterName = rsInfo.getCluster();
+		int port = rsInfo.getPort();
+        //获取集群
+		Cluster cluster = service.getClusterMap().get(clusterName);
+        //获取集群下所有的instance
+		List<Instance> instances = cluster.allIPs(true);
+        //遍历instance
+		for (Instance instance : instances) {
+		    //如果ip和port相等，则更新instance心跳更新时间
+			if (instance.getIp().equals(ip) && instance.getPort() == port) {
+				if (Loggers.EVT_LOG.isDebugEnabled()) {
+					Loggers.EVT_LOG.debug("[CLIENT-BEAT] refresh beat: {}", rsInfo.toString());
+				}
+				instance.setLastBeat(System.currentTimeMillis());
+                //如果instance没有标记和instance不健康，设置健康状态为true
+				if (!instance.isMarked() && !instance.isHealthy()) {
+					instance.setHealthy(true);
+					Loggers.EVT_LOG.info("service: {} {POS} {IP-ENABLED} valid: {}:{}@{}, region: {}, msg: client beat ok", cluster.getService().getName(), ip, port, cluster.getName(), UtilsAndCommons.LOCALHOST_SITE);
+                    //通知服务改变
+					getPushService().serviceChanged(service);
+				}
+			}
+		}
+	}
 }

@@ -205,6 +205,7 @@ public class NacosNamingService implements NamingService {
 			BeatInfo beatInfo = beatReactor.buildBeatInfo(groupedServiceName, instance);
 			beatReactor.addBeatInfo(groupedServiceName, beatInfo);
 		}
+		//调用http往nacos服务端进行服务注册
 		serverProxy.registerService(groupedServiceName, groupName, instance);
 	}
 
