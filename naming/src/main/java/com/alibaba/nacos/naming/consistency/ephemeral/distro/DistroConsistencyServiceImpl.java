@@ -125,6 +125,10 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 	/**
 	 * Put a new record.
 	 *
+	 * onPut首先判断下instance是否是临时的，
+	 * 如果是的话，则将数据封装为Datum，并
+	 * 用DataStore保存到Map中。addTask是将数据变更添加到队列中
+	 *
 	 * @param key   key of record
 	 * @param value record
 	 */
@@ -272,7 +276,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 		DistroHttpData distroHttpData = (DistroHttpData) distroData;
 		//进行反序列化
 		Datum<Instances> datum = (Datum<Instances>) distroHttpData.getDeserializedContent();
-		//将临时数据缓存到内容并进行通知
+		//todo:将临时数据缓存到内容并进行通知
 		onPut(datum.key, datum.value);
 		return true;
 	}
@@ -366,7 +370,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 		}
 
 		/**
-		 * run不断从tasks队列中拿出服务变更的key，交给handle方法处理
+		 * todo:run不断从tasks队列中拿出服务变更的key，交给handle方法处理
 		 */
 		@Override
 		public void run() {
@@ -393,7 +397,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
 				for (RecordListener listener : listeners.get(datumKey)) {
 					count++;
 					try {
-						//如果属于服务变更，则调用监听的onChange方法
+						//todo:如果属于服务变更，则调用监听的onChange方法
 						if (action == DataOperation.CHANGE) {
 							listener.onChange(datumKey, dataStore.get(datumKey).value);
 							continue;

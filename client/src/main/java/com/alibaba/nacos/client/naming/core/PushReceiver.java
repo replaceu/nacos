@@ -92,7 +92,7 @@ public class PushReceiver implements Runnable, Closeable {
 				// byte[] is initialized with 0 full filled by default
 				byte[] buffer = new byte[UDP_MSS];
 				DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-				//接收数据
+				//todo:接收数据
 				udpSocket.receive(packet);
 
 				String json = new String(IoUtils.tryDecompress(packet.getData()), UTF_8).trim();
@@ -113,7 +113,7 @@ public class PushReceiver implements Runnable, Closeable {
 					// do nothing send ack only
 					ack = "{\"type\": \"unknown-ack\"" + ", \"lastRefTime\":\"" + pushPacket.lastRefTime + "\", \"data\":" + "\"\"}";
 				}
-				//发送ack响应给nacos服务端
+				//todo:发送ack响应给nacos服务端
 				udpSocket.send(new DatagramPacket(ack.getBytes(UTF_8), ack.getBytes(UTF_8).length, packet.getSocketAddress()));
 			} catch (Exception e) {
 				if (closed) { return; }

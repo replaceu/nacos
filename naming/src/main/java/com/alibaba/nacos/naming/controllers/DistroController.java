@@ -86,7 +86,7 @@ public class DistroController {
 					serviceManager.createEmptyService(namespaceId, serviceName, true);
 				}
 				DistroHttpData distroHttpData = new DistroHttpData(createDistroKey(entry.getKey()), entry.getValue());
-				//将接收的数据进行处理
+				//todo:将接收的数据进行处理
 				distroProtocol.onReceive(distroHttpData);
 			}
 		}

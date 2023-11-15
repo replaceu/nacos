@@ -43,10 +43,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class DistroProtocol {
 
+	//服务器成员管理器
 	private final ServerMemberManager memberManager;
 
+	//distro组件的持有者，用来注册/获取各个组件
 	private final DistroComponentHolder distroComponentHolder;
 
+	//distro任务引擎持有者
 	private final DistroTaskEngineHolder distroTaskEngineHolder;
 
 	private final DistroConfig distroConfig;
@@ -74,6 +77,7 @@ public class DistroProtocol {
 			isInitialized = true;
 			return;
 		}
+		//开启验证任务
 		startVerifyTask();
 		//开始全量拉取数据
 		startLoadTask();
@@ -125,7 +129,7 @@ public class DistroProtocol {
 			DistroKey distroKeyWithTarget = new DistroKey(distroKey.getResourceKey(), distroKey.getResourceType(), each.getAddress());
             //封装为 Distro延迟任务
 			DistroDelayTask distroDelayTask = new DistroDelayTask(distroKeyWithTarget, action, delay);
-            //获取延迟任务执行引擎，并将 Distro延迟任务添加到延迟任务执行引擎中
+            //获取延迟任务执行引擎，并将Distro延迟任务添加到延迟任务执行引擎中
 			distroTaskEngineHolder.getDelayTaskExecuteEngine().addTask(distroKeyWithTarget, distroDelayTask);
 			if (Loggers.DISTRO.isDebugEnabled()) {
 				Loggers.DISTRO.debug("[DISTRO-SCHEDULE] {} to {}", distroKey, each.getAddress());

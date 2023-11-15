@@ -30,14 +30,12 @@ import java.util.Collection;
 public interface NacosTaskExecuteEngine<T extends NacosTask> extends Closeable {
     
     /**
-     * Get Task size in execute engine.
      * task的数量
      * @return size of task
      */
     int size();
     
     /**
-     * Whether the execute engine is empty.
      * 执行引擎是否为空
      * @return true if the execute engine has no task to do, otherwise false
      */
@@ -74,8 +72,6 @@ public interface NacosTaskExecuteEngine<T extends NacosTask> extends Closeable {
     Collection<Object> getAllProcessorKey();
     
     /**
-     * Set default task processor. If do not find task processor by task key, use this default processor to process
-     * task.
      * 设置默认的任务处理器
      * @param defaultTaskProcessor default task processor
      */

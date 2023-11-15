@@ -29,13 +29,14 @@ import java.util.Set;
  */
 @Component
 public class DistroComponentHolder {
-    
+
+    //存储不同类型的DistroData传输对象
     private final Map<String, DistroTransportAgent> transportAgentMap = new HashMap<>();
-    
+    //存储不同类型的DistroData存储器
     private final Map<String, DistroDataStorage> dataStorageMap = new HashMap<>();
-    
+    //存储不同类型的Distro失败任务处理器
     private final Map<String, DistroFailedTaskHandler> failedTaskHandlerMap = new HashMap<>();
-    
+    //存储不同类型的DistroData数据处理器
     private final Map<String, DistroDataProcessor> dataProcessorMap = new HashMap<>();
     
     public DistroTransportAgent findTransportAgent(String type) {

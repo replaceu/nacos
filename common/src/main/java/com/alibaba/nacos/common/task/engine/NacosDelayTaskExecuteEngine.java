@@ -63,6 +63,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
     public NacosDelayTaskExecuteEngine(String name, int initCapacity, Logger logger, long processInterval) {
         super(logger);
         tasks = new ConcurrentHashMap<Object, AbstractDelayTask>(initCapacity);
+        //todo:当初始化NacosDelayTaskExecuteEngine时，会初始化processingExecutor，并进行延迟任务的处理
         processingExecutor = ExecutorFactory.newSingleScheduledExecutorService(new NameThreadFactory(name));
         processingExecutor.scheduleWithFixedDelay(new ProcessRunnable(), processInterval, processInterval, TimeUnit.MILLISECONDS);
     }
@@ -137,7 +138,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
     }
     
     /**
-     * process tasks in execute engine.
+     * process tasks in execute engine.在执行引擎中处理任务
      */
     protected void processTasks() {
         //获取所有的任务key，并且进行遍历
@@ -149,15 +150,16 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
             if (null == task) {
                 continue;
             }
-            //根据taskKey获取任务处理器，如果处理器为null，则继续
+            //todo：根据taskKey获取任务处理器，如果处理器为null，则继续
             NacosTaskProcessor processor = getProcessor(taskKey);
             if (null == processor) {
                 getEngineLog().error("processor not found for task, so discarded. " + task);
                 continue;
             }
             try {
-                // ReAdd task if process failed
-                if (!processor.process(task)) {
+                //todo：处理器处理任务，并依据返回结果进行是否重试判断
+                boolean isProcess = processor.process(task);
+                if (!isProcess) {
                     //调用处理的process方法，如果处理失败，则进行重试
                     retryFailedTask(taskKey, task);
                 }

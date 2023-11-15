@@ -69,13 +69,18 @@ public class DistroHttpRegistry {
      */
     @PostConstruct
     public void doRegister() {
+        //创建distro数据存储对象
         componentHolder.registerDataStorage(KeyBuilder.INSTANCE_LIST_KEY_PREFIX,
                 new DistroDataStorageImpl(dataStore, distroMapper));
+        //创建distro传输代理对象http
         componentHolder.registerTransportAgent(KeyBuilder.INSTANCE_LIST_KEY_PREFIX, new DistroHttpAgent(memberManager));
+        //创建失败处理器，该处理器主要是添加失败重试任务
         componentHolder.registerFailedTaskHandler(KeyBuilder.INSTANCE_LIST_KEY_PREFIX,
                 new DistroHttpCombinedKeyTaskFailedHandler(globalConfig, taskEngineHolder));
+        //添加distro的http延时任务处理器
         taskEngineHolder.registerNacosTaskProcessor(KeyBuilder.INSTANCE_LIST_KEY_PREFIX,
                 new DistroHttpDelayTaskProcessor(globalConfig, taskEngineHolder));
+        //注册数据处理器
         componentHolder.registerDataProcessor(consistencyService);
     }
 }

@@ -87,7 +87,7 @@ public class ServiceManager implements RecordListener<Service> {
 	 */
 	//Nacos服务的注册表
 	private final Map<String, Map<String, Service>> serviceMap = new ConcurrentHashMap<>();
-
+	//链表结构组成的双向阻塞队列
 	private final LinkedBlockingDeque<ServiceKey> toBeUpdatedServicesQueue = new LinkedBlockingDeque<>(1024 * 1024);
 
 	private final Synchronizer synchronizer = new ServiceStatusSynchronizer();

@@ -576,7 +576,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
 			//udp发送的时间戳
 			udpSendTimeMap.put(ackEntry.key, System.currentTimeMillis());
 			Loggers.PUSH.info("send udp packet: " + ackEntry.key);
-			//udp发送
+			//todo:udp发送
 			udpSocket.send(ackEntry.origin);
 			ackEntry.increaseRetryTime();
 			//重试发送
